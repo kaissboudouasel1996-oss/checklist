@@ -1,0 +1,13 @@
+{
+  "name": "good-vibes-checklist",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Checklist for the Panini Stitch Good Vibes! trading cards",
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
