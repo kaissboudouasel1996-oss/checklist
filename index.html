@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root { color-scheme: light dark; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px system-ui, sans-serif; }
+[hidden] { display: none !important; }
+</style>
+<title>Checklist</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky progress header, a row of checklists with a + button first, scrollable group tabs, then a grid of tappable chips. */
+:root {
+  --bg: #eaf1f6;
+  --surface: #f8fbfd;
+  --fg: #11283b;
+  --muted: #566b7c;
+  --line: #c9d8e3;
+  --accent: #1f5fbf;
+  --on: #ffffff;
+  --danger: #a8402a;
+  --c-0: #35598f; --c-1: #c23b7a; --c-2: #8a5a00; --c-3: #0f7c8c;
+  --c-4: #7a4bb5; --c-5: #2f7d4f; --c-6: #a8402a; --c-7: #6b6f1a;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1722; --surface: #132332; --fg: #e6eef5; --muted: #93a7b8; --line: #28405a;
+    --accent: #6aa3f5; --on: #0b1520; --danger: #ee9a85;
+    --c-0: #8fb0e6; --c-1: #f08ab8; --c-2: #e8b84a; --c-3: #5cc8d8;
+    --c-4: #b995ea; --c-5: #7ccb9a; --c-6: #ee9a85; --c-7: #c3c96a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1722; --surface: #132332; --fg: #e6eef5; --muted: #93a7b8; --line: #28405a;
+  --accent: #6aa3f5; --on: #0b1520; --danger: #ee9a85;
+  --c-0: #8fb0e6; --c-1: #f08ab8; --c-2: #e8b84a; --c-3: #5cc8d8;
+  --c-4: #b995ea; --c-5: #7ccb9a; --c-6: #ee9a85; --c-7: #c3c96a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-block: 0 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 760px; margin: 0 auto; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, label.btn:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 14px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+}
+.head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; max-width: 760px; margin: 0 auto; }
+.head-row > div:first-child { min-width: 0; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; overflow-wrap: anywhere; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.05; margin: 2px 0 0; text-wrap: balance; overflow-wrap: anywhere; }
+.big { font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.big small { font-size: 16px; font-weight: 600; color: var(--muted); }
+.bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 10px auto 0; max-width: 760px; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+.sub { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 6px auto 0; max-width: 760px; font-variant-numeric: tabular-nums; }
+
+.lists { display: flex; gap: 8px; align-items: stretch; padding-top: 14px; }
+.plus { flex: 0 0 auto; width: 44px; border: 1.5px dashed var(--accent); background: var(--surface); color: var(--accent); border-radius: 10px; font-size: 26px; line-height: 1; font-weight: 600; }
+.plus[aria-expanded="true"] { background: var(--accent); color: var(--on); border-style: solid; }
+.pills { display: flex; gap: 8px; overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: thin; padding-bottom: 2px; }
+.pill { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.pill[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.add { margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: grid; gap: 12px; }
+.add h2 { font-family: var(--font-display); font-size: 18px; margin: 0; }
+.add p { margin: 0; font-size: 14px; color: var(--muted); max-width: 60ch; }
+details summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+.add textarea { min-height: 90px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.err { color: var(--danger); font-size: 14px; font-weight: 500; }
+.ok { color: var(--c-5); font-size: 14px; font-weight: 500; }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+
+.tabs { display: flex; gap: 8px; overflow-x: auto; padding: 14px 2px 6px; scrollbar-width: thin; }
+.tab { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; text-align: left; min-width: 92px; }
+.tab b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.tab span { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tab[aria-selected="true"] { border-color: var(--t); box-shadow: inset 0 -3px 0 var(--t); }
+.tab.done span { color: var(--t); font-weight: 600; }
+.bonus-sep { flex: 0 0 1px; background: var(--line); margin: 4px 2px; }
+
+.controls { display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin: 12px 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 8px 12px; font-size: 13px; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.hint { font-size: 13px; color: var(--muted); margin: 0 0 12px; max-width: 60ch; }
+
+.section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 4px 0 10px; flex-wrap: wrap; }
+.section-title h2 { font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--t); overflow-wrap: anywhere; }
+.section-title span { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 8px; }
+.grid.wide { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.chip {
+  position: relative; aspect-ratio: 1 / 1; min-height: 48px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: var(--surface); color: var(--muted);
+  font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums;
+  display: grid; place-items: center; padding: 0; overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.wide .chip { aspect-ratio: auto; min-height: 54px; font-size: 13px; line-height: 1.2; padding: 6px 8px; text-align: center; overflow-wrap: anywhere; }
+.chip[aria-pressed="true"] { background: var(--t); border-color: var(--t); color: var(--on); }
+.chip.rainbow[aria-pressed="true"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
+  background: linear-gradient(90deg, #e5484d, #f5a524, #30a46c, #3e63dd, #8e4ec6);
+}
+.spare {
+  position: absolute; top: 3px; right: 3px; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;
+  background: var(--fg); color: var(--bg); font-size: 11px; line-height: 18px; text-align: center; font-weight: 600;
+}
+.empty { padding: 28px 12px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; grid-column: 1 / -1; }
+
+.tools { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 12px; }
+.tools h3 { font-family: var(--font-display); font-size: 16px; margin: 0; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-size: 14px; font-weight: 500; display: inline-block; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on); font-weight: 600; }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.solid { background: var(--danger); color: var(--on); border-color: var(--danger); }
+textarea { width: 100%; min-height: 110px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font: inherit; font-size: 13px; padding: 10px; }
+.status { font-size: 12px; color: var(--muted); min-height: 1.2em; }
+.msg { font-size: 13px; color: var(--muted); }
+.swap { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 14px; display: grid; gap: 12px; }
+.swap textarea { font-family: ui-monospace, Menlo, Consolas, monospace; min-height: 84px; overflow-wrap: anywhere; }
+.qr { background: #fff; padding: 12px; border-radius: 12px; width: min(100%, 340px); margin-inline: auto; }
+.qr svg { display: block; width: 100%; height: auto; }
+.qr .msg { color: #44556a; text-align: center; }
+#cam-wrap { display: grid; gap: 8px; }
+#cam { width: 100%; max-height: 320px; border-radius: 10px; background: #000; }
+.res { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--bg); display: grid; gap: 4px; }
+.res h4 { font-family: var(--font-display); font-size: 16px; margin: 0; }
+.res p { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.res p b { font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+@media (max-width: 420px) { h1 { font-size: 24px; } .big { font-size: 28px; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="head-row">
+      <div>
+        <div class="eyebrow" id="eyebrow">Checklists</div>
+        <h1 id="title">My checklists</h1>
+      </div>
+      <div class="big" id="total" aria-live="polite" hidden></div>
+    </div>
+    <div class="bar" role="progressbar" aria-label="Checklist completion" aria-valuemin="0" aria-valuemax="100" id="bar"><i id="barfill"></i></div>
+    <div class="sub"><span id="pct">0% complete</span><span id="spares">0 spares</span><span id="save" class="status"></span></div>
+  </header>
+
+  <div class="lists">
+    <button type="button" class="plus" id="plus" aria-label="Add a checklist" aria-expanded="false" aria-controls="add">+</button>
+    <div class="pills" id="pills" role="tablist" aria-label="Your checklists"></div>
+  </div>
+
+  <section class="add" id="add" hidden>
+    <h2>Add a checklist</h2>
+    <p>Choose a checklist file that Claude made for you. It ends in <b>.json</b>. The checklist is added to this app and your other checklists stay as they are.</p>
+    <div class="row">
+      <label class="btn primary" for="file">Choose file
+        <input type="file" id="file" accept=".json,application/json,text/plain">
+      </label>
+      <button type="button" class="btn" id="add-close">Close</button>
+    </div>
+    <details>
+      <summary>Paste the file contents instead</summary>
+      <div style="display:grid; gap:8px; margin-top:10px">
+        <textarea id="paste" aria-label="Checklist file contents" placeholder='{"format": "checklist-v1", ...}'></textarea>
+        <div class="row"><button type="button" class="btn" id="paste-add">Add pasted checklist</button></div>
+      </div>
+    </details>
+    <div id="addmsg" role="status"></div>
+  </section>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Card types"></nav>
+
+  <div class="controls" id="controls">
+    <div class="seg" role="group" aria-label="Tap action">
+      <button type="button" id="m-own" aria-pressed="true">Mark owned</button>
+      <button type="button" id="m-spare" aria-pressed="false">Add spare</button>
+    </div>
+    <div class="seg" role="group" aria-label="Show cards">
+      <button type="button" data-f="all" aria-pressed="true">All</button>
+      <button type="button" data-f="missing" aria-pressed="false">Missing</button>
+      <button type="button" data-f="owned" aria-pressed="false">Owned</button>
+      <button type="button" data-f="spare" aria-pressed="false">Spares</button>
+    </div>
+  </div>
+  <p class="hint" id="hint"></p>
+
+  <section id="panel" aria-live="polite"></section>
+
+  <section class="tools" id="tools">
+    <h3>Swap with a friend</h3>
+    <div class="row">
+      <button type="button" class="btn primary" id="swap-show">Show my code</button>
+      <button type="button" class="btn" id="swap-compare">Compare with a friend's code</button>
+    </div>
+    <div class="swap" id="swap" hidden>
+      <div id="share-box" hidden style="display:grid; gap:12px">
+        <p class="msg">Your friend scans this QR code, or types the code into their app. They need the same checklist added, then the app shows which of your spares they need.</p>
+        <div class="qr" id="qr"></div>
+        <textarea id="code-out" readonly aria-label="Your code"></textarea>
+        <div class="row"><button type="button" class="btn" id="code-copy">Copy code</button></div>
+        <div class="msg" id="code-msg"></div>
+      </div>
+      <div id="cmp-box" hidden style="display:grid; gap:12px">
+        <p class="msg">Paste your friend's code, scan their QR code with the camera, or choose a screenshot of it.</p>
+        <textarea id="friend-code" aria-label="Your friend's code" placeholder="CL1.…"></textarea>
+        <div class="row">
+          <button type="button" class="btn primary" id="cmp-go">Compare</button>
+          <label class="btn" for="qr-file">Choose QR photo
+            <input type="file" id="qr-file" accept="image/*">
+          </label>
+          <button type="button" class="btn" id="cam-start">Scan with camera</button>
+        </div>
+        <div id="cam-wrap" hidden>
+          <video id="cam" playsinline muted></video>
+          <div class="row"><button type="button" class="btn" id="cam-stop">Stop camera</button></div>
+        </div>
+        <div id="cmp-msg" role="status"></div>
+        <div id="cmp-out" style="display:grid; gap:10px"></div>
+      </div>
+    </div>
+
+    <h3>Trade lists</h3>
+    <div class="row">
+      <button type="button" class="btn" id="copy-missing">Copy missing list</button>
+      <button type="button" class="btn" id="copy-spares">Copy spares list</button>
+    </div>
+    <textarea id="out" hidden readonly aria-label="List to copy"></textarea>
+    <div class="msg" id="copymsg"></div>
+    <div class="row">
+      <button type="button" class="btn danger" id="reset">Clear progress</button>
+      <button type="button" class="btn danger" id="remove">Remove this checklist</button>
+    </div>
+    <div class="row" id="confirm" hidden>
+      <span class="msg" id="confirm-text"></span>
+      <button type="button" class="btn solid" id="confirm-yes">Yes, do it</button>
+      <button type="button" class="btn" id="confirm-no">Keep it</button>
+    </div>
+  </section>
+</div>
+
+<script src="qrcode.js"></script>
+<script src="jsQR.js"></script>
+<script>
+(function () {
+  var LS = "checklist-hub-v2";
+  var app = defaultApp();
+  var ui = { tabs: {}, filter: "all", mode: "own", pending: null };
+  var docRef = null, oldRef = null, dirty = false, timer = null, saving = false, again = false;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function defaultApp() { return { lists: [], states: {}, active: null, seeded: true }; }
+
+  /* ---------- checklist file format ---------- */
+  function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60); }
+  function validateDef(d) {
+    if (!d || typeof d !== "object" || Array.isArray(d)) return { error: "This is not a checklist file." };
+    if (d.format !== "checklist-v1") return { error: "This file is not a checklist made by Claude. It should say \"format\": \"checklist-v1\"." };
+    if (typeof d.title !== "string" || !d.title.trim()) return { error: "The checklist needs a title." };
+    if (!Array.isArray(d.groups) || !d.groups.length) return { error: "The checklist needs at least one group of cards." };
+    if (d.groups.length > 80) return { error: "The checklist has too many groups (the limit is 80)." };
+    var id = slug(d.id || d.title);
+    if (!id) return { error: "The checklist needs an id or a title with letters or numbers." };
+    var keys = {}, groups = [], total = 0, i;
+    for (i = 0; i < d.groups.length; i++) {
+      var g = d.groups[i], n;
+      if (!g || typeof g.key !== "string" || !/^[A-Za-z0-9_]{1,8}$/.test(g.key)) return { error: "Group " + (i + 1) + " needs a short key with letters and numbers only." };
+      if (keys[g.key]) return { error: "Two groups use the key " + g.key + "." };
+      keys[g.key] = 1;
+      if (typeof g.name !== "string" || !g.name.trim()) return { error: "Group " + g.key + " needs a name." };
+      var items;
+      if (Array.isArray(g.items)) {
+        items = g.items.map(function (x) { return String(x).slice(0, 60); }); n = items.length;
+      } else if (typeof g.items === "number" && g.items % 1 === 0) { items = g.items; n = g.items; }
+      else return { error: "Group " + g.key + " needs \"items\" as a number or a list of names." };
+      if (n < 1 || n > 3000) return { error: "Group " + g.key + " must have between 1 and 3000 items." };
+      total += n;
+      groups.push({ key: g.key, name: g.name.trim().slice(0, 60), items: items, bonus: g.bonus === true, rainbow: g.rainbow === true });
+    }
+    if (total > 6000) return { error: "The checklist has too many items (the limit is 6000)." };
+    return { def: { id: id, title: d.title.trim().slice(0, 80), subtitle: typeof d.subtitle === "string" ? d.subtitle.trim().slice(0, 80) : "", groups: groups } };
+  }
+  function gcount(g) { return Array.isArray(g.items) ? g.items.length : g.items; }
+  function glabel(g, i) { return Array.isArray(g.items) ? g.items[i - 1] : String(i); }
+  function isWide(def) { return def.groups.some(function (g) { return Array.isArray(g.items); }); }
+  function totalOf(def) { return def.groups.reduce(function (a, g) { return a + (g.bonus ? 0 : gcount(g)); }, 0); }
+
+  /* ---------- state ---------- */
+  function validId(def, id) {
+    var p = id.lastIndexOf("-"); if (p < 1) return false;
+    var key = id.slice(0, p), n = Number(id.slice(p + 1));
+    for (var i = 0; i < def.groups.length; i++) if (def.groups[i].key === key) return n >= 1 && n <= gcount(def.groups[i]) && n % 1 === 0;
+    return false;
+  }
+  function cleanState(def, s) {
+    var o = { own: {}, spare: {} };
+    if (s && s.own) Object.keys(s.own).forEach(function (k) { if (validId(def, k)) o.own[k] = 1; });
+    if (s && s.spare) Object.keys(s.spare).forEach(function (k) { var n = Number(s.spare[k]); if (validId(def, k) && n > 0) o.spare[k] = Math.min(9, Math.floor(n)); });
+    return o;
+  }
+  function normalize(raw) {
+    if (!raw || typeof raw !== "object" || !Array.isArray(raw.lists)) return defaultApp();
+    var out = { lists: [], states: {}, active: null, seeded: true }, seen = {};
+    raw.lists.forEach(function (d) {
+      var v = validateDef(Object.assign({ format: "checklist-v1" }, d));
+      if (v.def && !seen[v.def.id]) { seen[v.def.id] = 1; out.lists.push(v.def); out.states[v.def.id] = cleanState(v.def, raw.states && raw.states[v.def.id]); }
+    });
+    out.active = raw.active && seen[raw.active] ? raw.active : (out.lists[0] ? out.lists[0].id : null);
+    return out;
+  }
+  function cur() { for (var i = 0; i < app.lists.length; i++) if (app.lists[i].id === app.active) return app.lists[i]; return null; }
+  function st() { var d = cur(); if (!app.states[d.id]) app.states[d.id] = { own: {}, spare: {} }; return app.states[d.id]; }
+  function counts(def, g) {
+    var s = app.states[def.id] || { own: {}, spare: {} }, c = 0, sp = 0, n = gcount(g);
+    for (var i = 1; i <= n; i++) { var id = g.key + "-" + i; if (s.own[id]) c++; sp += s.spare[id] || 0; }
+    return { owned: c, spares: sp };
+  }
+  function curTab(def) {
+    var k = ui.tabs[def.id];
+    for (var i = 0; i < def.groups.length; i++) if (def.groups[i].key === k) return i;
+    return 0;
+  }
+
+  /* ---------- storage ---------- */
+  function lsGet() { try { var v = localStorage.getItem(LS); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function lsSet() { try { localStorage.setItem(LS, JSON.stringify(app)); } catch (e) {} }
+  function setStatus(t) { $("save").textContent = t; }
+  function changed() { renderAll(); dirty = true; setStatus("Saving…"); lsSet(); clearTimeout(timer); timer = setTimeout(flush, 700); }
+  function flush() {
+    if (saving) { again = true; return; }
+    if (!docRef) { dirty = false; setStatus("Saved on this device"); return; }
+    saving = true;
+    docRef.set({ lists: app.lists, states: app.states, active: app.active, seeded: true, v: 2 })
+      .then(function () { setStatus("Saved"); }, function () { setStatus("Saved on this device only"); })
+      .then(function () { saving = false; if (again) { again = false; flush(); } else { dirty = false; } });
+  }
+
+  /* ---------- rendering ---------- */
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  var CTL = ["controls", "hint", "tools"];
+
+  function renderPills() {
+    var p = $("pills"); p.textContent = "";
+    app.lists.forEach(function (d) {
+      var b = el("button", "pill", d.title); b.type = "button";
+      b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(d.id === app.active));
+      b.addEventListener("click", function () { app.active = d.id; ui.pending = null; $("confirm").hidden = true; changed(); });
+      p.appendChild(b);
+    });
+  }
+  function renderHeader() {
+    var d = cur();
+    $("total").hidden = !d;
+    if (!d) {
+      $("eyebrow").textContent = "Checklists"; $("title").textContent = "My checklists";
+      $("barfill").style.width = "0"; $("pct").textContent = "No checklist yet"; $("spares").textContent = "";
+      return;
+    }
+    var owned = 0, spares = 0, tot = totalOf(d);
+    d.groups.forEach(function (g) { var c = counts(d, g); if (!g.bonus) owned += c.owned; spares += c.spares; });
+    $("eyebrow").textContent = d.subtitle || "Checklist"; $("title").textContent = d.title;
+    $("total").textContent = owned; var sm = el("small", null, " / " + tot); $("total").appendChild(sm);
+    $("barfill").style.width = (tot ? owned / tot * 100 : 0) + "%";
+    $("bar").setAttribute("aria-valuenow", String(tot ? Math.round(owned / tot * 100) : 0));
+    $("pct").textContent = (tot ? Math.round(owned / tot * 100) : 0) + "% complete";
+    $("spares").textContent = spares + (spares === 1 ? " spare" : " spares");
+  }
+  function renderTabs() {
+    var t = $("tabs"); t.textContent = ""; var d = cur(); if (!d) return;
+    var ti = curTab(d);
+    d.groups.forEach(function (g, i) {
+      if (g.bonus && i > 0 && !d.groups[i - 1].bonus) t.appendChild(el("div", "bonus-sep"));
+      var c = counts(d, g), n = gcount(g);
+      var b = el("button", "tab" + (c.owned === n ? " done" : "")); b.type = "button";
+      b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(i === ti));
+      b.style.setProperty("--t", "var(--c-" + (i % 8) + ")");
+      b.appendChild(el("b", null, g.name));
+      b.appendChild(el("span", null, c.owned + " / " + n + (g.bonus ? " bonus" : "")));
+      b.addEventListener("click", function () { ui.tabs[d.id] = g.key; renderTabs(); renderPanel(); });
+      t.appendChild(b);
+    });
+  }
+  function renderPanel() {
+    var p = $("panel"); p.textContent = ""; var d = cur();
+    var has = !!d;
+    CTL.forEach(function (id) { $(id).hidden = !has; });
+    if (!d) {
+      var e = el("div", "empty", "No checklists yet. Tap the + button to add one."); p.appendChild(e); return;
+    }
+    var gi = curTab(d), g = d.groups[gi], s = st(), c = counts(d, g), n = gcount(g);
+    p.style.setProperty("--t", "var(--c-" + (gi % 8) + ")");
+    var head = el("div", "section-title");
+    head.appendChild(el("h2", null, g.name));
+    head.appendChild(el("span", null, c.owned + " of " + n + " owned" + (c.owned === n ? " · complete" : "")));
+    p.appendChild(head);
+    var grid = el("div", "grid" + (isWide(d) ? " wide" : "")), shown = 0;
+    for (var i = 1; i <= n; i++) {
+      (function (i) {
+        var id = g.key + "-" + i, own = !!s.own[id], k = s.spare[id] || 0;
+        if (ui.filter === "missing" && own) return;
+        if (ui.filter === "owned" && !own) return;
+        if (ui.filter === "spare" && !k) return;
+        shown++;
+        var lab = glabel(g, i);
+        var b = el("button", "chip" + (g.rainbow ? " rainbow" : ""), lab); b.type = "button";
+        b.setAttribute("aria-pressed", String(own));
+        b.setAttribute("aria-label", g.name + " " + lab + (own ? ", owned" : ", missing") + (k ? ", " + k + " spare" : ""));
+        if (k) b.appendChild(el("span", "spare", "+" + k));
+        b.addEventListener("click", function () { tap(id); });
+        grid.appendChild(b);
+      })(i);
+    }
+    if (!shown) grid.appendChild(el("div", "empty", ui.filter === "missing" ? "Nothing missing here. This group is complete." : ui.filter === "owned" ? "No cards marked owned in this group yet." : "No spares in this group yet."));
+    p.appendChild(grid);
+  }
+  function renderHint() {
+    $("hint").textContent = ui.mode === "own" ? "Tap a card to mark it as owned. Tap it again to unmark." : "Tap a card to add one spare copy. Spares count up to 9, then reset to 0.";
+  }
+  function renderAll() { renderPills(); renderHeader(); renderTabs(); renderPanel(); renderHint(); if (cur() && !$("share-box").hidden) renderShare(); }
+
+  function tap(id) {
+    var s = st();
+    if (ui.mode === "own") { if (s.own[id]) { delete s.own[id]; delete s.spare[id]; } else s.own[id] = 1; }
+    else { s.own[id] = 1; var n = ((s.spare[id] || 0) + 1) % 10; if (n) s.spare[id] = n; else delete s.spare[id]; }
+    changed();
+  }
+
+  /* ---------- trade lists ---------- */
+  function listFor(kind) {
+    var d = cur(), s = st(), lines = [];
+    d.groups.forEach(function (g) {
+      var ids = [], n = gcount(g);
+      for (var i = 1; i <= n; i++) {
+        var id = g.key + "-" + i, lab = glabel(g, i);
+        if (kind === "missing" && !s.own[id]) ids.push(lab);
+        if (kind === "spares" && s.spare[id]) ids.push(lab + (s.spare[id] > 1 ? " x" + s.spare[id] : ""));
+      }
+      if (ids.length === n && kind === "missing") lines.push(g.name + ": all " + n);
+      else if (ids.length) lines.push(g.name + ": " + ids.join(", "));
+    });
+    if (!lines.length) return kind === "missing" ? "Nothing missing. Set complete!" : "No spares yet.";
+    return d.title + (kind === "missing" ? ", missing\n" : ", spares\n") + lines.join("\n");
+  }
+  function copy(kind) {
+    var text = listFor(kind), out = $("out"); out.value = text; out.hidden = false;
+    var done = function () { $("copymsg").textContent = "Copied to your clipboard."; };
+    var fail = function () { out.focus(); out.select(); $("copymsg").textContent = "Select the text above and copy it."; };
+    try { navigator.clipboard.writeText(text).then(done, fail); } catch (e) { fail(); }
+  }
+
+  /* ---------- adding a checklist ---------- */
+  function showMsg(text, ok) { var m = $("addmsg"); m.textContent = text; m.className = ok ? "ok" : "err"; }
+  function addFromText(text) {
+    var data;
+    try { data = JSON.parse(text); } catch (e) { showMsg("This file could not be read. Make sure it is the .json file Claude gave you, not a copy of it in another format.", false); return; }
+    var v = validateDef(data);
+    if (v.error) { showMsg(v.error, false); return; }
+    var def = v.def, idx = -1;
+    app.lists.forEach(function (d, i) { if (d.id === def.id) idx = i; });
+    if (idx >= 0) { app.lists[idx] = def; app.states[def.id] = cleanState(def, app.states[def.id]); }
+    else { app.lists.push(def); app.states[def.id] = { own: {}, spare: {} }; }
+    app.active = def.id;
+    showMsg((idx >= 0 ? "Updated " : "Added ") + def.title + ". " + (idx >= 0 ? "Your ticks were kept." : "Start ticking cards."), true);
+    $("paste").value = "";
+    changed();
+  }
+  function toggleAdd(open) {
+    var a = $("add"); a.hidden = !open; $("plus").setAttribute("aria-expanded", String(open));
+    if (!open) { $("addmsg").textContent = ""; }
+  }
+
+  /* ---------- swapping with a friend ---------- */
+  function flat(def) {
+    var a = [];
+    def.groups.forEach(function (g) { var n = gcount(g); for (var i = 1; i <= n; i++) a.push({ g: g, i: i, id: g.key + "-" + i }); });
+    return a;
+  }
+  function b64e(bytes) {
+    var s = ""; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function b64d(t) {
+    t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "=";
+    var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+    return b;
+  }
+  function bitAt(b, off, k) { return (b[off + (k >> 3)] >> (k & 7)) & 1; }
+  function makeCode(def) {
+    var f = flat(def), s = app.states[def.id] || { own: {}, spare: {} }, nb = Math.ceil(f.length / 8), b = new Uint8Array(nb * 2);
+    f.forEach(function (x, k) {
+      if (s.own[x.id]) b[k >> 3] |= 1 << (k & 7);
+      if (s.spare[x.id]) b[nb + (k >> 3)] |= 1 << (k & 7);
+    });
+    return "CL1." + def.id + "." + f.length + "." + b64e(b);
+  }
+  function readCode(text) {
+    var bad = { error: "This is not a code from this app. Check that you copied the whole code." };
+    var p = String(text).replace(/\s+/g, "").split(".");
+    if (p.length !== 4 || p[0] !== "CL1") return bad;
+    var n = Number(p[2]); if (!(n >= 1 && n <= 7000 && n % 1 === 0)) return bad;
+    var b; try { b = b64d(p[3]); } catch (e) { return bad; }
+    var nb = Math.ceil(n / 8);
+    if (b.length !== nb * 2) return { error: "This code looks cut off. Copy the whole code and try again." };
+    return { id: p[1], n: n, nb: nb, b: b };
+  }
+  function renderShare() {
+    var d = cur(); if (!d) return;
+    var code = makeCode(d); $("code-out").value = code; $("code-msg").textContent = "";
+    var q = $("qr"); q.textContent = "";
+    try {
+      var qr = window.qrcode(0, "L"); qr.addData(code); qr.make();
+      q.innerHTML = qr.createSvgTag({ scalable: true, margin: 2 });
+    } catch (e) {
+      q.appendChild(el("p", "msg", "The QR code is not available right now. Share the code below instead."));
+    }
+  }
+  function openSwap(which) {
+    var sw = $("swap"), sb = $("share-box"), cb = $("cmp-box");
+    var already = !sw.hidden && ((which === "share" && !sb.hidden) || (which === "cmp" && !cb.hidden));
+    stopCam();
+    if (already) { sw.hidden = true; sb.hidden = true; cb.hidden = true; return; }
+    sw.hidden = false; sb.hidden = which !== "share"; cb.hidden = which !== "cmp";
+    if (which === "share") renderShare();
+  }
+  function groupLines(items) {
+    var by = {}, order = [];
+    items.forEach(function (x) { if (!by[x.g.key]) { by[x.g.key] = { g: x.g, labs: [] }; order.push(x.g.key); } by[x.g.key].labs.push(glabel(x.g, x.i)); });
+    return order.map(function (k) { return by[k].g.name + ": " + by[k].labs.join(", "); });
+  }
+  function cmpMsg(text, ok) { var m = $("cmp-msg"); m.textContent = text; m.className = ok ? "ok" : "err"; }
+  function compareCode(text) {
+    var out = $("cmp-out"); out.textContent = "";
+    var r = readCode(text); if (r.error) { cmpMsg(r.error, false); return; }
+    var def = null; app.lists.forEach(function (d) { if (d.id === r.id) def = d; });
+    if (!def) { cmpMsg("This code is for a checklist that is not in your app yet. Ask your friend for the checklist file, add it with the + button, then compare again.", false); return; }
+    var f = flat(def);
+    if (f.length !== r.n) { cmpMsg("Your checklist and your friend's checklist have a different number of cards. Both of you need to add the same checklist file.", false); return; }
+    var s = app.states[def.id] || { own: {}, spare: {} };
+    var give = [], get = [];
+    f.forEach(function (x, k) {
+      var iOwn = !!s.own[x.id], iSpare = !!s.spare[x.id];
+      var theyOwn = bitAt(r.b, 0, k), theySpare = bitAt(r.b, r.nb, k);
+      if (iSpare && !theyOwn) give.push(x);
+      if (!iOwn && theySpare) get.push(x);
+    });
+    if (app.active !== def.id) { app.active = def.id; changed(); }
+    cmpMsg("Compared using " + def.title + ".", true);
+    var texts = [];
+    [["You can give your friend", give], ["Your friend can give you", get]].forEach(function (pair) {
+      var box = el("div", "res"), lines = groupLines(pair[1]);
+      box.appendChild(el("h4", null, pair[0] + " (" + pair[1].length + ")"));
+      if (!lines.length) box.appendChild(el("p", "msg", "No matches."));
+      lines.forEach(function (ln) { box.appendChild(el("p", null, ln)); });
+      out.appendChild(box);
+      texts.push(pair[0] + " (" + pair[1].length + ")\n" + (lines.length ? lines.join("\n") : "No matches."));
+    });
+    var cp = el("button", "btn", "Copy this result"); cp.type = "button";
+    cp.addEventListener("click", function () {
+      var t = def.title + "\n\n" + texts.join("\n\n");
+      var done = function () { cmpMsg("Result copied to your clipboard.", true); };
+      var fail = function () { cmpMsg("Select the result and copy it yourself.", false); };
+      try { navigator.clipboard.writeText(t).then(done, fail); } catch (e) { fail(); }
+    });
+    out.appendChild(cp);
+  }
+  function decodeCanvas(c) {
+    if (!window.jsQR) return null;
+    var im = c.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, c.width, c.height);
+    var r = window.jsQR(im.data, im.width, im.height);
+    return r ? r.data : null;
+  }
+  function gotScanned(text) { $("friend-code").value = text; compareCode(text); }
+  function scanFile(file) {
+    if (!window.jsQR) { cmpMsg("Scanning is not available right now. Paste the code instead.", false); return; }
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var sc = Math.min(1, 1400 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      var t = null; try { t = decodeCanvas(c); } catch (e) {}
+      if (t) gotScanned(t); else cmpMsg("No QR code found in this photo. Try a sharper photo or screenshot, or paste the code.", false);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); cmpMsg("This photo could not be opened.", false); };
+    img.src = url;
+  }
+  var camStream = null, camOn = false;
+  function stopCam() {
+    camOn = false;
+    if (camStream) { camStream.getTracks().forEach(function (t) { t.stop(); }); camStream = null; }
+    $("cam-wrap").hidden = true;
+  }
+  function startCam() {
+    if (!window.jsQR) { cmpMsg("Scanning is not available right now. Paste the code instead.", false); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { cmpMsg("The camera is not available here. Choose a QR photo or paste the code instead.", false); return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function (stream) {
+      camStream = stream; camOn = true;
+      var v = $("cam"); v.srcObject = stream; $("cam-wrap").hidden = false; cmpMsg("Point the camera at your friend's QR code.", true);
+      var c = document.createElement("canvas");
+      v.play().catch(function () {});
+      (function loop() {
+        if (!camOn) return;
+        if (v.videoWidth) {
+          var sc = Math.min(1, 640 / v.videoWidth); c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+          c.getContext("2d", { willReadFrequently: true }).drawImage(v, 0, 0, c.width, c.height);
+          var t = null; try { t = decodeCanvas(c); } catch (e) {}
+          if (t) { stopCam(); gotScanned(t); return; }
+        }
+        setTimeout(loop, 150);
+      })();
+    }, function () { cmpMsg("The camera is not available here. Choose a QR photo or paste the code instead.", false); });
+  }
+
+  /* ---------- confirm step ---------- */
+  function ask(kind, text) { ui.pending = kind; $("confirm-text").textContent = text; $("confirm").hidden = false; }
+
+  function bind() {
+    $("plus").addEventListener("click", function () { toggleAdd($("add").hidden); });
+    $("add-close").addEventListener("click", function () { toggleAdd(false); });
+    $("file").addEventListener("change", function () {
+      var f = this.files && this.files[0], input = this;
+      if (!f) return;
+      if (f.size > 1500000) { showMsg("This file is too large to be a checklist.", false); input.value = ""; return; }
+      var r = new FileReader();
+      r.onload = function () { addFromText(String(r.result)); input.value = ""; };
+      r.onerror = function () { showMsg("The file could not be opened. Try choosing it again.", false); input.value = ""; };
+      r.readAsText(f);
+    });
+    $("paste-add").addEventListener("click", function () { var t = $("paste").value.trim(); if (!t) { showMsg("Paste the file contents first.", false); return; } addFromText(t); });
+    $("m-own").addEventListener("click", function () { ui.mode = "own"; $("m-own").setAttribute("aria-pressed", "true"); $("m-spare").setAttribute("aria-pressed", "false"); renderHint(); });
+    $("m-spare").addEventListener("click", function () { ui.mode = "spare"; $("m-own").setAttribute("aria-pressed", "false"); $("m-spare").setAttribute("aria-pressed", "true"); renderHint(); });
+    document.querySelectorAll("[data-f]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        ui.filter = b.getAttribute("data-f");
+        document.querySelectorAll("[data-f]").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+        renderPanel();
+      });
+    });
+    $("swap-show").addEventListener("click", function () { openSwap("share"); });
+    $("swap-compare").addEventListener("click", function () { openSwap("cmp"); });
+    $("code-copy").addEventListener("click", function () {
+      var out = $("code-out"), done = function () { $("code-msg").textContent = "Code copied. Send it to your friend."; };
+      var fail = function () { out.focus(); out.select(); $("code-msg").textContent = "Select the code above and copy it."; };
+      try { navigator.clipboard.writeText(out.value).then(done, fail); } catch (e) { fail(); }
+    });
+    $("cmp-go").addEventListener("click", function () { var t = $("friend-code").value.trim(); if (!t) { cmpMsg("Paste your friend's code first.", false); return; } compareCode(t); });
+    $("qr-file").addEventListener("change", function () { var f = this.files && this.files[0]; if (f) scanFile(f); this.value = ""; });
+    $("cam-start").addEventListener("click", startCam);
+    $("cam-stop").addEventListener("click", stopCam);
+    $("copy-missing").addEventListener("click", function () { copy("missing"); });
+    $("copy-spares").addEventListener("click", function () { copy("spares"); });
+    $("reset").addEventListener("click", function () { ask("reset", "Clear every tick and spare in this checklist?"); });
+    $("remove").addEventListener("click", function () { ask("remove", "Remove this checklist and its progress?"); });
+    $("confirm-no").addEventListener("click", function () { ui.pending = null; $("confirm").hidden = true; });
+    $("confirm-yes").addEventListener("click", function () {
+      var d = cur(); if (!d) return;
+      if (ui.pending === "reset") app.states[d.id] = { own: {}, spare: {} };
+      if (ui.pending === "remove") {
+        app.lists = app.lists.filter(function (x) { return x.id !== d.id; });
+        delete app.states[d.id];
+        app.active = app.lists[0] ? app.lists[0].id : null;
+      }
+      ui.pending = null; $("confirm").hidden = true; changed();
+    });
+  }
+
+  /* ---------- saved account data ---------- */
+  function connect() {
+    if (!window.claude || !window.claude.use) { setStatus("Saved on this device"); return; }
+    Promise.all([window.claude.use("user"), window.claude.use("db")]).then(function (r) {
+      var user = r[0], db = r[1];
+      if (!user || !db) { setStatus("Saved on this device"); return; }
+      return user.id().then(function (uid) {
+        if (!uid) { setStatus("Saved on this device"); return; }
+        docRef = db.doc("data/users/" + uid + "/hub");
+        oldRef = db.doc("data/users/" + uid + "/checklist");
+        var waiting = setTimeout(function () { setStatus("Can't reach saved data yet"); }, 10000);
+        docRef.onSnapshot(function (snap) {
+          if (!snap.metadata.fromCache) clearTimeout(waiting);
+          if (dirty || snap.metadata.hasPendingWrites) return;
+          if (snap.exists) { app = normalize(snap.data()); lsSet(); renderAll(); setStatus("Saved"); return; }
+          if (snap.metadata.fromCache) return;
+          renderAll(); dirty = true; flush();
+        }, function () { clearTimeout(waiting); setStatus("Saved on this device only"); docRef = null; });
+      });
+    }).catch(function () { setStatus("Saved on this device only"); docRef = null; });
+  }
+
+  var local = lsGet();
+  if (local) app = normalize(local);
+  bind();
+  renderAll();
+  connect();
+})();
+</script>
+
+</body>
+</html>
