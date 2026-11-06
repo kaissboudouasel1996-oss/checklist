@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Checklist</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff; --surface: #f4f6fa; --fg: #0f172a; --muted: #64748b; --line: #e2e8f0;
+  --accent: #1f5fbf; --on: #ffffff; --danger: #b42318; --own: #667085;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1220; --surface: #131c2e; --fg: #e6edf6; --muted: #93a3b8; --line: #25324a;
+    --accent: #6aa3f5; --on: #0b1520; --danger: #f1998c; --own: #475569; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1220; --surface: #131c2e; --fg: #e6edf6; --muted: #93a3b8; --line: #25324a;
+  --accent: #6aa3f5; --on: #0b1520; --danger: #f1998c; --own: #475569; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+svg { display: block; }
+
+.stick { position: sticky; top: 0; z-index: 20; background: var(--bg); padding-top: env(safe-area-inset-top, 0px); }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px 6px; min-height: 58px; }
+.titlebtn { display: flex; align-items: center; gap: 6px; border: 0; background: none; padding: 6px 0; font-size: 22px; font-weight: 700; text-align: left; min-width: 0; }
+.titlebtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.titlebtn:disabled { cursor: default; }
+.tb-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+.iconbtn { width: 44px; height: 44px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--fg); }
+.iconbtn:active { background: var(--surface); }
+.iconbtn svg { width: 26px; height: 26px; }
+.iconbtn .s { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; border: 0; background: none; padding: 12px 0 11px; font-size: 17px; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--fg); font-weight: 700; border-bottom-color: var(--accent); }
+
+.search { display: flex; align-items: center; gap: 10px; margin: 14px 16px 6px; padding: 0 16px; height: 50px; background: var(--surface); border-radius: 16px; color: var(--muted); }
+.search svg { width: 22px; height: 22px; flex: none; }
+.search input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: 16px; color: var(--fg); outline: none; }
+.search input::placeholder { color: var(--muted); }
+.hint { margin: 0 16px 4px; font-size: 12px; color: var(--muted); }
+
+.group { margin: 0 16px; border-bottom: 1px solid var(--line); }
+.ghead { width: 100%; display: flex; align-items: center; gap: 4px; border: 0; background: none; padding: 22px 0; text-align: left; }
+.ghead b { font-size: 22px; line-height: 1.2; overflow-wrap: anywhere; }
+.ghead svg { width: 22px; height: 22px; flex: none; color: var(--muted); }
+.ghead small { margin-left: auto; padding-left: 10px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.group.done .ghead small { color: var(--accent); font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 0 0 22px; }
+.grid.named { grid-template-columns: repeat(4, 1fr); row-gap: 14px; }
+.cell { border: 0; background: none; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.dot { position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.dot.sm { font-size: 13px; }
+.cell.own .dot { background: var(--own); border-color: var(--own); color: #fff; text-decoration: line-through; text-decoration-thickness: 2px; }
+.cell.rainbow.own .dot { border: 3px solid transparent; background: linear-gradient(var(--own), var(--own)) padding-box, linear-gradient(135deg, #e5484d, #f5a524, #30a46c, #3e63dd, #8e4ec6) border-box; }
+.cell:active .dot { transform: scale(.94); }
+.spare { position: absolute; top: -5px; right: -5px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: var(--on); font-size: 12px; line-height: 22px; font-weight: 700; text-decoration: none; }
+.cap { max-width: 100%; font-size: 11px; line-height: 1.2; color: var(--muted); text-align: center; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.4em; }
+.empty { margin: 32px 16px; padding: 28px 14px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; }
+.empty .btn { margin-top: 14px; }
+
+.screen { padding: 8px 16px 24px; }
+.screen h2 { font-size: 18px; margin: 18px 0 8px; }
+.screen p { margin: 0 0 12px; }
+.msg { font-size: 13px; color: var(--muted); }
+.ok { color: #0f7b4b; font-size: 13px; } .err { color: var(--danger); font-size: 13px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 11px 16px; font-size: 15px; font-weight: 500; display: inline-block; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on); font-weight: 600; }
+.btn.danger { color: var(--danger); border-color: var(--danger); background: none; }
+.btn.solid { background: var(--danger); color: var(--on); border-color: var(--danger); }
+textarea { width: 100%; min-height: 110px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: inherit; font-size: 13px; padding: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.seg button { border: 0; background: none; padding: 10px 16px; font-size: 14px; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.status { font-size: 12px; color: var(--muted); }
+
+.bar { height: 10px; border-radius: 5px; background: var(--surface); overflow: hidden; border: 1px solid var(--line); }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; }
+.hero { margin: 8px 0 18px; }
+.hero .big { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hero .big small { font-size: 20px; font-weight: 600; color: var(--muted); }
+.hero .sub { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; color: var(--muted); }
+.srow { margin: 0 0 16px; }
+.srow .t { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-weight: 600; }
+.srow .t span { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.rowcard { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; text-align: left; }
+.rowcard span { color: var(--muted); font-size: 14px; white-space: nowrap; }
+.rowcard.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.swap { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 14px; display: grid; gap: 12px; margin-top: 12px; }
+.swap textarea { font-family: ui-monospace, Menlo, Consolas, monospace; min-height: 84px; overflow-wrap: anywhere; background: var(--bg); }
+.qr { background: #fff; padding: 12px; border-radius: 12px; width: min(100%, 340px); margin-inline: auto; }
+.qr svg { width: 100%; height: auto; }
+.qr .msg { color: #44556a; text-align: center; }
+#cam-wrap { display: grid; gap: 8px; }
+#cam { width: 100%; max-height: 320px; border-radius: 10px; background: #000; }
+.res { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--bg); display: grid; gap: 4px; }
+.res h4 { font-size: 16px; margin: 0; }
+.res p { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+
+.bottomnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; background: var(--bg); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.bottomnav button { flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 0 8px; font-size: 12px; color: var(--muted); }
+.bottomnav button svg { width: 28px; height: 28px; fill: currentColor; }
+.bottomnav button[aria-current="page"] { color: var(--accent); font-weight: 600; }
+
+.menu { position: fixed; z-index: 40; top: calc(env(safe-area-inset-top, 0px) + 56px); background: var(--bg); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.18); min-width: 230px; max-width: calc(100% - 24px); max-height: 65vh; overflow: auto; padding: 6px 0; }
+.menu.left { left: 12px; } .menu.right { right: 12px; }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 14px 18px; font-size: 16px; }
+.menu button:active { background: var(--surface); }
+.menu button[aria-current="true"] { color: var(--accent); font-weight: 700; }
+.menu button.dng { color: var(--danger); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
+
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.45); display: grid; place-items: center; padding: 20px; }
+.modal .card { background: var(--bg); border-radius: 18px; padding: 20px; width: min(100%, 360px); display: grid; gap: 16px; }
+.modal .card p { margin: 0; font-size: 17px; }
+.toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); background: #1f2937; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; max-width: calc(100% - 32px); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .cell:active .dot { transform: none; } }
+</style>
+</head>
+<body>
+<div class="stick">
+  <header class="topbar">
+    <button type="button" class="titlebtn" id="title-btn" aria-haspopup="true"><span id="title">Checklist</span><svg id="title-chev" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg></button>
+    <div class="tb-actions" id="tb-actions">
+      <button type="button" class="iconbtn" id="lock-btn" aria-label="Lock editing" aria-pressed="false">
+        <svg id="lock-open" viewBox="0 0 24 24" aria-hidden="true"><g class="s"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7.5A4 4 0 0 1 15.6 6"/><circle cx="12" cy="16" r="1.2"/></g></svg>
+        <svg id="lock-closed" viewBox="0 0 24 24" aria-hidden="true" hidden><g class="s"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/><circle cx="12" cy="16" r="1.2"/></g></svg>
+      </button>
+      <button type="button" class="iconbtn" id="share-btn" aria-label="Share my list"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="s"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4"/></g></svg></button>
+      <button type="button" class="iconbtn" id="more-btn" aria-label="More options" aria-haspopup="true"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></g></svg></button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Show stickers">
+    <button type="button" role="tab" data-t="all" aria-selected="true">All</button>
+    <button type="button" role="tab" data-t="missing" aria-selected="false">Missing</button>
+    <button type="button" role="tab" data-t="spare" aria-selected="false">Trades</button>
+  </nav>
+</div>
+<div class="menu" id="menu" hidden></div>
+
+<main>
+  <section id="s-lists">
+    <div id="search-wrap">
+      <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="s" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></g></svg><input type="search" id="search" placeholder="Search stickers" aria-label="Search stickers" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></label>
+      <p class="hint" id="hint">Tap to add. Hold to remove.</p>
+    </div>
+    <div id="panel" aria-live="polite"></div>
+  </section>
+
+  <section class="screen" id="s-stats" hidden><div id="stats"></div></section>
+
+  <section class="screen" id="s-trade" hidden>
+    <h2>Swap with a friend</h2>
+    <p class="msg">Show a code of your spares and needs, or compare with your friend's code.</p>
+    <div class="row">
+      <button type="button" class="btn primary" id="swap-show">Show my code</button>
+      <button type="button" class="btn" id="swap-compare">Compare with a friend's code</button>
+    </div>
+    <div class="swap" id="swap" hidden>
+      <div id="share-box" hidden style="display:grid; gap:12px">
+        <p class="msg">Your friend scans this QR code, or types the code into their app. They need the same checklist added, then the app shows which of your spares they need.</p>
+        <div class="qr" id="qr"></div>
+        <textarea id="code-out" readonly aria-label="Your code"></textarea>
+        <div class="row"><button type="button" class="btn" id="code-copy">Copy code</button></div>
+        <div class="msg" id="code-msg"></div>
+      </div>
+      <div id="cmp-box" hidden style="display:grid; gap:12px">
+        <p class="msg">Paste your friend's code, scan their QR code with the camera, or choose a screenshot of it.</p>
+        <textarea id="friend-code" aria-label="Your friend's code" placeholder="CL1.…"></textarea>
+        <div class="row">
+          <button type="button" class="btn primary" id="cmp-go">Compare</button>
+          <label class="btn" for="qr-file">Choose QR photo<input type="file" id="qr-file" accept="image/*" hidden></label>
+          <button type="button" class="btn" id="cam-start">Scan with camera</button>
+        </div>
+        <div id="cam-wrap" hidden>
+          <video id="cam" playsinline muted></video>
+          <div class="row"><button type="button" class="btn" id="cam-stop">Stop camera</button></div>
+        </div>
+        <div id="cmp-msg" role="status"></div>
+        <div id="cmp-out" style="display:grid; gap:10px"></div>
+      </div>
+    </div>
+    <h2>Trade lists</h2>
+    <div class="row">
+      <button type="button" class="btn" id="copy-missing">Copy missing list</button>
+      <button type="button" class="btn" id="copy-spares">Copy spares list</button>
+    </div>
+    <textarea id="out" hidden readonly aria-label="List to copy" style="margin-top:10px"></textarea>
+    <div class="msg" id="copymsg"></div>
+  </section>
+
+  <section class="screen" id="s-add" hidden>
+    <h2>Add a checklist</h2>
+    <p class="msg">Choose a checklist file that ends in <b>.json</b>. It is added to this app and your other checklists stay as they are.</p>
+    <div class="row">
+      <label class="btn primary" for="file">Choose file<input type="file" id="file" accept=".json,application/json,text/plain" hidden></label>
+    </div>
+    <details style="margin-top:12px">
+      <summary>Paste the file contents instead</summary>
+      <div style="display:grid; gap:8px; margin-top:10px">
+        <textarea id="paste" aria-label="Checklist file contents" placeholder='{"format": "checklist-v1", ...}'></textarea>
+        <div class="row"><button type="button" class="btn" id="paste-add">Add pasted checklist</button></div>
+      </div>
+    </details>
+    <div id="addmsg" role="status" style="margin-top:10px"></div>
+    <h2>Your checklists</h2>
+    <div id="mylists"></div>
+  </section>
+
+  <section class="screen" id="s-settings" hidden>
+    <h2>Theme</h2>
+    <div class="seg" role="group" aria-label="Theme">
+      <button type="button" data-th="auto" aria-pressed="true">Auto</button>
+      <button type="button" data-th="light" aria-pressed="false">Light</button>
+      <button type="button" data-th="dark" aria-pressed="false">Dark</button>
+    </div>
+    <h2>This checklist</h2>
+    <div class="row">
+      <button type="button" class="btn danger" id="reset">Clear progress</button>
+      <button type="button" class="btn danger" id="remove">Remove this checklist</button>
+    </div>
+    <h2>How it works</h2>
+    <p class="msg">Tap a sticker to mark it as owned. Tap again to add a spare copy (up to 9). Hold a sticker to remove one. The lock icon stops accidental taps.</p>
+    <p class="msg">Progress is saved on this phone. Uninstalling the app erases it. <span id="save" class="status"></span></p>
+  </section>
+</main>
+
+<nav class="bottomnav" id="bottomnav" aria-label="Main">
+  <button type="button" data-s="lists" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10a3 3 0 0 1 3 3v13a2 2 0 0 1-2 2H6a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2zm2 5v2h8V8H7zm0 4v2h8v-2H7z"/></svg>My lists</button>
+  <button type="button" data-s="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>Stats</button>
+  <button type="button" data-s="trade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>Trade</button>
+  <button type="button" data-s="add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>Add</button>
+  <button type="button" data-s="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Settings</button>
+</nav>
+
+<div class="modal" id="confirm" hidden role="dialog" aria-modal="true">
+  <div class="card">
+    <p id="confirm-text"></p>
+    <div class="row"><button type="button" class="btn solid" id="confirm-yes">Yes, do it</button><button type="button" class="btn" id="confirm-no">Keep it</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="qrcode.js"></script>
+<script src="jsQR.js"></script>
+<script>
+(function () {
+  var LS = "checklist-hub-v2";
+  var app = defaultApp();
+  var ui = { screen: "lists", tab: "all", search: "", open: {}, seen: {}, locked: false, menu: null, pending: null };
+  var docRef = null, oldRef = null, dirty = false, timer = null, saving = false, again = false;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function defaultApp() { return { lists: [], states: {}, active: null, seeded: true }; }
+
+  /* ---------- checklist file format ---------- */
+  function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60); }
+  function validateDef(d) {
+    if (!d || typeof d !== "object" || Array.isArray(d)) return { error: "This is not a checklist file." };
+    if (d.format !== "checklist-v1") return { error: "This file is not a checklist made by Claude. It should say \"format\": \"checklist-v1\"." };
+    if (typeof d.title !== "string" || !d.title.trim()) return { error: "The checklist needs a title." };
+    if (!Array.isArray(d.groups) || !d.groups.length) return { error: "The checklist needs at least one group of cards." };
+    if (d.groups.length > 80) return { error: "The checklist has too many groups (the limit is 80)." };
+    var id = slug(d.id || d.title);
+    if (!id) return { error: "The checklist needs an id or a title with letters or numbers." };
+    var keys = {}, groups = [], total = 0, i;
+    for (i = 0; i < d.groups.length; i++) {
+      var g = d.groups[i], n;
+      if (!g || typeof g.key !== "string" || !/^[A-Za-z0-9_]{1,8}$/.test(g.key)) return { error: "Group " + (i + 1) + " needs a short key with letters and numbers only." };
+      if (keys[g.key]) return { error: "Two groups use the key " + g.key + "." };
+      keys[g.key] = 1;
+      if (typeof g.name !== "string" || !g.name.trim()) return { error: "Group " + g.key + " needs a name." };
+      var items;
+      if (Array.isArray(g.items)) {
+        items = g.items.map(function (x) { return String(x).slice(0, 60); }); n = items.length;
+      } else if (typeof g.items === "number" && g.items % 1 === 0) { items = g.items; n = g.items; }
+      else return { error: "Group " + g.key + " needs \"items\" as a number or a list of names." };
+      if (n < 1 || n > 3000) return { error: "Group " + g.key + " must have between 1 and 3000 items." };
+      total += n;
+      groups.push({ key: g.key, name: g.name.trim().slice(0, 60), items: items, bonus: g.bonus === true, rainbow: g.rainbow === true });
+    }
+    if (total > 6000) return { error: "The checklist has too many items (the limit is 6000)." };
+    return { def: { id: id, title: d.title.trim().slice(0, 80), subtitle: typeof d.subtitle === "string" ? d.subtitle.trim().slice(0, 80) : "", groups: groups } };
+  }
+  function gcount(g) { return Array.isArray(g.items) ? g.items.length : g.items; }
+  function glabel(g, i) { return Array.isArray(g.items) ? g.items[i - 1] : String(i); }
+  function isWide(def) { return def.groups.some(function (g) { return Array.isArray(g.items); }); }
+  function totalOf(def) { return def.groups.reduce(function (a, g) { return a + (g.bonus ? 0 : gcount(g)); }, 0); }
+
+  /* ---------- state ---------- */
+  function validId(def, id) {
+    var p = id.lastIndexOf("-"); if (p < 1) return false;
+    var key = id.slice(0, p), n = Number(id.slice(p + 1));
+    for (var i = 0; i < def.groups.length; i++) if (def.groups[i].key === key) return n >= 1 && n <= gcount(def.groups[i]) && n % 1 === 0;
+    return false;
+  }
+  function cleanState(def, s) {
+    var o = { own: {}, spare: {} };
+    if (s && s.own) Object.keys(s.own).forEach(function (k) { if (validId(def, k)) o.own[k] = 1; });
+    if (s && s.spare) Object.keys(s.spare).forEach(function (k) { var n = Number(s.spare[k]); if (validId(def, k) && n > 0) o.spare[k] = Math.min(9, Math.floor(n)); });
+    return o;
+  }
+  function normalize(raw) {
+    if (!raw || typeof raw !== "object" || !Array.isArray(raw.lists)) return defaultApp();
+    var out = { lists: [], states: {}, active: null, seeded: true }, seen = {};
+    raw.lists.forEach(function (d) {
+      var v = validateDef(Object.assign({ format: "checklist-v1" }, d));
+      if (v.def && !seen[v.def.id]) { seen[v.def.id] = 1; out.lists.push(v.def); out.states[v.def.id] = cleanState(v.def, raw.states && raw.states[v.def.id]); }
+    });
+    out.active = raw.active && seen[raw.active] ? raw.active : (out.lists[0] ? out.lists[0].id : null);
+    return out;
+  }
+  function cur() { for (var i = 0; i < app.lists.length; i++) if (app.lists[i].id === app.active) return app.lists[i]; return null; }
+  function st() { var d = cur(); if (!app.states[d.id]) app.states[d.id] = { own: {}, spare: {} }; return app.states[d.id]; }
+  function counts(def, g) {
+    var s = app.states[def.id] || { own: {}, spare: {} }, c = 0, sp = 0, n = gcount(g);
+    for (var i = 1; i <= n; i++) { var id = g.key + "-" + i; if (s.own[id]) c++; sp += s.spare[id] || 0; }
+    return { owned: c, spares: sp };
+  }
+  function curTab(def) {
+    var k = ui.tabs[def.id];
+    for (var i = 0; i < def.groups.length; i++) if (def.groups[i].key === k) return i;
+    return 0;
+  }
+
+  /* ---------- storage ---------- */
+  function lsGet() { try { var v = localStorage.getItem(LS); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  function lsSet() { try { localStorage.setItem(LS, JSON.stringify(app)); } catch (e) {} }
+  function setStatus(t) { $("save").textContent = t; }
+  function changed() { renderAll(); dirty = true; setStatus("Saving…"); lsSet(); clearTimeout(timer); timer = setTimeout(flush, 700); }
+  function flush() {
+    if (saving) { again = true; return; }
+    if (!docRef) { dirty = false; setStatus("Saved on this device"); return; }
+    saving = true;
+    docRef.set({ lists: app.lists, states: app.states, active: app.active, seeded: true, v: 2 })
+      .then(function () { setStatus("Saved"); }, function () { setStatus("Saved on this device only"); })
+      .then(function () { saving = false; if (again) { again = false; flush(); } else { dirty = false; } });
+  }
+
+  /* ---------- rendering ---------- */
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  var CH_D = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>';
+  var CH_U = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 14l5-5 5 5z"/></svg>';
+  function norm(s) { return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
+  function splitLabel(lab) {
+    var m = /^([A-Za-z]+) (\d+)\s*(.*)$/.exec(lab);
+    if (m) return { code: m[2], name: m[3] };
+    m = /^(\S+)\s+(.+)$/.exec(lab);
+    if (m) return { code: m[1], name: m[2] };
+    return { code: lab, name: "" };
+  }
+  function summary(d) {
+    var o = 0, t = 0, sp = 0;
+    d.groups.forEach(function (g) { var c = counts(d, g); if (!g.bonus) { o += c.owned; t += gcount(g); } sp += c.spares; });
+    return { owned: o, total: t, spares: sp };
+  }
+  function toast(msg) {
+    var t = $("toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.tm); toast.tm = setTimeout(function () { t.hidden = true; }, 1900);
+  }
+
+  function renderTop() {
+    var d = cur(), s = ui.screen, main = s === "lists";
+    var names = { stats: "Statistics", trade: "Trade", add: "Add a checklist", settings: "Settings" };
+    $("title").textContent = main ? (d ? d.title : "Checklist") : names[s];
+    $("title-chev").hidden = !main;
+    $("title-btn").disabled = !main;
+    $("tb-actions").hidden = !main;
+    $("tabs").hidden = !main;
+    $("lock-open").hidden = ui.locked; $("lock-closed").hidden = !ui.locked;
+    $("lock-btn").setAttribute("aria-pressed", String(ui.locked));
+    $("lock-btn").setAttribute("aria-label", ui.locked ? "Unlock editing" : "Lock editing");
+    document.querySelectorAll("#tabs [data-t]").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-t") === ui.tab)); });
+  }
+
+  function renderMain() {
+    var d = cur(), p = $("panel"); p.textContent = "";
+    $("search-wrap").hidden = !d;
+    if (!d) {
+      var e = el("div", "empty", "No checklists yet.");
+      var b = el("button", "btn primary", "Add a checklist"); b.type = "button";
+      b.addEventListener("click", function () { ui.screen = "add"; renderAll(); window.scrollTo(0, 0); });
+      e.appendChild(el("br")); e.appendChild(b); p.appendChild(e); return;
+    }
+    var s = st(), q = norm(ui.search.trim()), shown = 0;
+    var open = ui.open[d.id] || (ui.open[d.id] = {});
+    if (!ui.seen[d.id]) { ui.seen[d.id] = 1; open[d.groups[0].key] = true; }
+    d.groups.forEach(function (g) {
+      var n = gcount(g), c = counts(d, g), gmatch = q && norm(g.name).indexOf(q) >= 0, idx = [], named = false;
+      for (var i = 1; i <= n; i++) {
+        var id = g.key + "-" + i, own = !!s.own[id], k = s.spare[id] || 0, lab = glabel(g, i);
+        if (ui.tab === "missing" && own) continue;
+        if (ui.tab === "spare" && !k) continue;
+        if (q && !gmatch && norm(lab).indexOf(q) < 0) continue;
+        idx.push(i);
+      }
+      if ((ui.tab !== "all" || q) && !idx.length) return;
+      shown++;
+      var isOpen = !!open[g.key] || !!q;
+      var box = el("div", "group" + (c.owned === n ? " done" : ""));
+      var h = el("button", "ghead"); h.type = "button"; h.setAttribute("aria-expanded", String(isOpen));
+      h.appendChild(el("b", null, g.name));
+      var chev = el("span"); chev.innerHTML = isOpen ? CH_U : CH_D; chev.style.display = "flex"; h.appendChild(chev);
+      h.appendChild(el("small", null, c.owned + "/" + n));
+      h.addEventListener("click", function () { open[g.key] = !open[g.key]; renderMain(); });
+      box.appendChild(h);
+      if (isOpen) {
+        var labs = idx.map(function (i) { return splitLabel(glabel(g, i)); });
+        named = labs.some(function (x) { return !!x.name; });
+        var grid = el("div", "grid" + (named ? " named" : ""));
+        idx.forEach(function (i, j) {
+          var id = g.key + "-" + i, own = !!s.own[id], k = s.spare[id] || 0, sp = labs[j];
+          var b = el("button", "cell" + (own ? " own" : "") + (g.rainbow ? " rainbow" : "")); b.type = "button";
+          var dot = el("span", "dot" + (sp.code.length > 3 ? " sm" : ""), sp.code); b.appendChild(dot);
+          if (k) dot.appendChild(el("span", "spare", "+" + k));
+          if (named) b.appendChild(el("span", "cap", sp.name));
+          b.setAttribute("aria-label", g.name + " " + glabel(g, i) + (own ? ", owned" : ", missing") + (k ? ", " + k + " spare" : ""));
+          var tm = null, longp = false;
+          b.addEventListener("pointerdown", function () { longp = false; clearTimeout(tm); tm = setTimeout(function () { longp = true; dec(id); }, 450); });
+          ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(tm); }); });
+          b.addEventListener("click", function () { if (longp) { longp = false; return; } tap(id); });
+          b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+          grid.appendChild(b);
+        });
+        box.appendChild(grid);
+      }
+      p.appendChild(box);
+    });
+    if (!shown) p.appendChild(el("div", "empty", q ? "No stickers match your search." : ui.tab === "missing" ? "Nothing missing. Set complete!" : "No spares yet."));
+  }
+
+  function renderStats() {
+    var d = cur(), box = $("stats"); box.textContent = "";
+    if (!d) { box.appendChild(el("div", "empty", "No checklist yet. Add one first.")); return; }
+    var sm = summary(d), pct = sm.total ? Math.round(sm.owned / sm.total * 100) : 0;
+    var hero = el("div", "hero");
+    var big = el("div", "big", String(sm.owned)); big.appendChild(el("small", null, " / " + sm.total)); hero.appendChild(big);
+    var bar = el("div", "bar"), fill = el("i"); fill.style.width = pct + "%"; bar.appendChild(fill); hero.appendChild(bar);
+    var sub = el("div", "sub"); sub.appendChild(el("span", null, pct + "% complete")); sub.appendChild(el("span", null, sm.spares + (sm.spares === 1 ? " spare" : " spares"))); hero.appendChild(sub);
+    box.appendChild(hero);
+    d.groups.forEach(function (g) {
+      var c = counts(d, g), n = gcount(g), row = el("div", "srow"), t = el("div", "t");
+      t.appendChild(el("div", null, g.name)); t.appendChild(el("span", null, c.owned + " / " + n + (g.bonus ? " bonus" : "")));
+      var b = el("div", "bar"), f = el("i"); f.style.width = (n ? c.owned / n * 100 : 0) + "%"; b.appendChild(f);
+      row.appendChild(t); row.appendChild(b); box.appendChild(row);
+    });
+  }
+
+  function renderAdd() {
+    var box = $("mylists"); box.textContent = "";
+    if (!app.lists.length) { box.appendChild(el("p", "msg", "No checklists yet.")); return; }
+    app.lists.forEach(function (d) {
+      var sm = summary(d), b = el("button", "rowcard" + (d.id === app.active ? " active" : "")); b.type = "button";
+      b.appendChild(el("b", null, d.title)); b.appendChild(el("span", null, sm.owned + " / " + sm.total));
+      b.addEventListener("click", function () { app.active = d.id; ui.screen = "lists"; changed(); window.scrollTo(0, 0); });
+      box.appendChild(b);
+    });
+  }
+
+  function renderTheme() {
+    var t = "auto"; try { t = localStorage.getItem("checklist-theme") || "auto"; } catch (e) {}
+    document.querySelectorAll("[data-th]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-th") === t)); });
+  }
+  function applyTheme(t) {
+    var r = document.documentElement;
+    if (t === "light" || t === "dark") r.setAttribute("data-theme", t); else r.removeAttribute("data-theme");
+    try { localStorage.setItem("checklist-theme", t); } catch (e) {}
+  }
+
+  function closeMenu() { ui.menu = null; $("menu").hidden = true; }
+  function openMenu(kind, items) {
+    if (ui.menu === kind) { closeMenu(); return; }
+    var m = $("menu"); m.textContent = "";
+    items.forEach(function (it) {
+      if (it === "-") { m.appendChild(el("hr")); return; }
+      var b = el("button", it.cls || "", it.label); b.type = "button";
+      if (it.active) b.setAttribute("aria-current", "true");
+      b.addEventListener("click", function () { closeMenu(); it.fn(); });
+      m.appendChild(b);
+    });
+    m.className = "menu " + (kind === "lists" ? "left" : "right"); m.hidden = false; ui.menu = kind;
+  }
+  function goto(s) { closeMenu(); ui.screen = s; renderAll(); window.scrollTo(0, 0); }
+
+  function renderAll() {
+    var y = window.scrollY;
+    renderTop();
+    ["lists", "stats", "trade", "add", "settings"].forEach(function (k) { $("s-" + k).hidden = ui.screen !== k; });
+    document.querySelectorAll("[data-s]").forEach(function (b) { if (b.getAttribute("data-s") === ui.screen) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    if (ui.screen === "lists") renderMain();
+    if (ui.screen === "stats") renderStats();
+    if (ui.screen === "add") renderAdd();
+    if (ui.screen === "trade" && cur() && !$("share-box").hidden) renderShare();
+    renderTheme();
+    window.scrollTo(0, y);
+  }
+
+  function tap(id) {
+    if (ui.locked) { toast("Locked. Tap the lock to edit."); return; }
+    var s = st();
+    if (!s.own[id]) s.own[id] = 1; else s.spare[id] = Math.min(9, (s.spare[id] || 0) + 1);
+    changed();
+  }
+  function dec(id) {
+    if (ui.locked) { toast("Locked. Tap the lock to edit."); return; }
+    var s = st();
+    if (s.spare[id] > 1) s.spare[id]--; else if (s.spare[id]) delete s.spare[id]; else delete s.own[id];
+    if (navigator.vibrate) try { navigator.vibrate(25); } catch (e) {}
+    changed();
+  }
+
+  /* ---------- trade lists ---------- */
+  function listFor(kind) {
+    var d = cur(), s = st(), lines = [];
+    d.groups.forEach(function (g) {
+      var ids = [], n = gcount(g);
+      for (var i = 1; i <= n; i++) {
+        var id = g.key + "-" + i, lab = glabel(g, i);
+        if (kind === "missing" && !s.own[id]) ids.push(lab);
+        if (kind === "spares" && s.spare[id]) ids.push(lab + (s.spare[id] > 1 ? " x" + s.spare[id] : ""));
+      }
+      if (ids.length === n && kind === "missing") lines.push(g.name + ": all " + n);
+      else if (ids.length) lines.push(g.name + ": " + ids.join(", "));
+    });
+    if (!lines.length) return kind === "missing" ? "Nothing missing. Set complete!" : "No spares yet.";
+    return d.title + (kind === "missing" ? ", missing\n" : ", spares\n") + lines.join("\n");
+  }
+  function copy(kind) {
+    var text = listFor(kind), out = $("out"); out.value = text; out.hidden = false;
+    var done = function () { $("copymsg").textContent = "Copied to your clipboard."; toast("Copied to your clipboard"); };
+    var fail = function () { ui.screen = "trade"; renderAll(); out.focus(); out.select(); $("copymsg").textContent = "Select the text above and copy it."; };
+    try { navigator.clipboard.writeText(text).then(done, fail); } catch (e) { fail(); }
+  }
+
+  /* ---------- adding a checklist ---------- */
+  function showMsg(text, ok) { var m = $("addmsg"); m.textContent = text; m.className = ok ? "ok" : "err"; }
+  function addFromText(text) {
+    var data;
+    try { data = JSON.parse(text); } catch (e) { showMsg("This file could not be read. Make sure it is the .json file Claude gave you, not a copy of it in another format.", false); return; }
+    var v = validateDef(data);
+    if (v.error) { showMsg(v.error, false); return; }
+    var def = v.def, idx = -1;
+    app.lists.forEach(function (d, i) { if (d.id === def.id) idx = i; });
+    if (idx >= 0) { app.lists[idx] = def; app.states[def.id] = cleanState(def, app.states[def.id]); }
+    else { app.lists.push(def); app.states[def.id] = { own: {}, spare: {} }; }
+    app.active = def.id;
+    showMsg((idx >= 0 ? "Updated " : "Added ") + def.title + ". " + (idx >= 0 ? "Your ticks were kept." : "Start ticking cards."), true);
+    $("paste").value = ""; ui.screen = "lists"; toast((idx >= 0 ? "Updated " : "Added ") + def.title);
+    changed();
+  }
+  /* ---------- swapping with a friend ---------- */
+  function flat(def) {
+    var a = [];
+    def.groups.forEach(function (g) { var n = gcount(g); for (var i = 1; i <= n; i++) a.push({ g: g, i: i, id: g.key + "-" + i }); });
+    return a;
+  }
+  function b64e(bytes) {
+    var s = ""; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function b64d(t) {
+    t = t.replace(/-/g, "+").replace(/_/g, "/"); while (t.length % 4) t += "=";
+    var s = atob(t), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+    return b;
+  }
+  function bitAt(b, off, k) { return (b[off + (k >> 3)] >> (k & 7)) & 1; }
+  function makeCode(def) {
+    var f = flat(def), s = app.states[def.id] || { own: {}, spare: {} }, nb = Math.ceil(f.length / 8), b = new Uint8Array(nb * 2);
+    f.forEach(function (x, k) {
+      if (s.own[x.id]) b[k >> 3] |= 1 << (k & 7);
+      if (s.spare[x.id]) b[nb + (k >> 3)] |= 1 << (k & 7);
+    });
+    return "CL1." + def.id + "." + f.length + "." + b64e(b);
+  }
+  function readCode(text) {
+    var bad = { error: "This is not a code from this app. Check that you copied the whole code." };
+    var p = String(text).replace(/\s+/g, "").split(".");
+    if (p.length !== 4 || p[0] !== "CL1") return bad;
+    var n = Number(p[2]); if (!(n >= 1 && n <= 7000 && n % 1 === 0)) return bad;
+    var b; try { b = b64d(p[3]); } catch (e) { return bad; }
+    var nb = Math.ceil(n / 8);
+    if (b.length !== nb * 2) return { error: "This code looks cut off. Copy the whole code and try again." };
+    return { id: p[1], n: n, nb: nb, b: b };
+  }
+  function renderShare() {
+    var d = cur(); if (!d) return;
+    var code = makeCode(d); $("code-out").value = code; $("code-msg").textContent = "";
+    var q = $("qr"); q.textContent = "";
+    try {
+      var qr = window.qrcode(0, "L"); qr.addData(code); qr.make();
+      q.innerHTML = qr.createSvgTag({ scalable: true, margin: 2 });
+    } catch (e) {
+      q.appendChild(el("p", "msg", "The QR code is not available right now. Share the code below instead."));
+    }
+  }
+  function openSwap(which) {
+    var sw = $("swap"), sb = $("share-box"), cb = $("cmp-box");
+    var already = !sw.hidden && ((which === "share" && !sb.hidden) || (which === "cmp" && !cb.hidden));
+    stopCam();
+    if (already) { sw.hidden = true; sb.hidden = true; cb.hidden = true; return; }
+    sw.hidden = false; sb.hidden = which !== "share"; cb.hidden = which !== "cmp";
+    if (which === "share") renderShare();
+  }
+  function groupLines(items) {
+    var by = {}, order = [];
+    items.forEach(function (x) { if (!by[x.g.key]) { by[x.g.key] = { g: x.g, labs: [] }; order.push(x.g.key); } by[x.g.key].labs.push(glabel(x.g, x.i)); });
+    return order.map(function (k) { return by[k].g.name + ": " + by[k].labs.join(", "); });
+  }
+  function cmpMsg(text, ok) { var m = $("cmp-msg"); m.textContent = text; m.className = ok ? "ok" : "err"; }
+  function compareCode(text) {
+    var out = $("cmp-out"); out.textContent = "";
+    var r = readCode(text); if (r.error) { cmpMsg(r.error, false); return; }
+    var def = null; app.lists.forEach(function (d) { if (d.id === r.id) def = d; });
+    if (!def) { cmpMsg("This code is for a checklist that is not in your app yet. Ask your friend for the checklist file, add it with the + button, then compare again.", false); return; }
+    var f = flat(def);
+    if (f.length !== r.n) { cmpMsg("Your checklist and your friend's checklist have a different number of cards. Both of you need to add the same checklist file.", false); return; }
+    var s = app.states[def.id] || { own: {}, spare: {} };
+    var give = [], get = [];
+    f.forEach(function (x, k) {
+      var iOwn = !!s.own[x.id], iSpare = !!s.spare[x.id];
+      var theyOwn = bitAt(r.b, 0, k), theySpare = bitAt(r.b, r.nb, k);
+      if (iSpare && !theyOwn) give.push(x);
+      if (!iOwn && theySpare) get.push(x);
+    });
+    if (app.active !== def.id) { app.active = def.id; changed(); }
+    cmpMsg("Compared using " + def.title + ".", true);
+    var texts = [];
+    [["You can give your friend", give], ["Your friend can give you", get]].forEach(function (pair) {
+      var box = el("div", "res"), lines = groupLines(pair[1]);
+      box.appendChild(el("h4", null, pair[0] + " (" + pair[1].length + ")"));
+      if (!lines.length) box.appendChild(el("p", "msg", "No matches."));
+      lines.forEach(function (ln) { box.appendChild(el("p", null, ln)); });
+      out.appendChild(box);
+      texts.push(pair[0] + " (" + pair[1].length + ")\n" + (lines.length ? lines.join("\n") : "No matches."));
+    });
+    var cp = el("button", "btn", "Copy this result"); cp.type = "button";
+    cp.addEventListener("click", function () {
+      var t = def.title + "\n\n" + texts.join("\n\n");
+      var done = function () { cmpMsg("Result copied to your clipboard.", true); };
+      var fail = function () { cmpMsg("Select the result and copy it yourself.", false); };
+      try { navigator.clipboard.writeText(t).then(done, fail); } catch (e) { fail(); }
+    });
+    out.appendChild(cp);
+  }
+  function decodeCanvas(c) {
+    if (!window.jsQR) return null;
+    var im = c.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, c.width, c.height);
+    var r = window.jsQR(im.data, im.width, im.height);
+    return r ? r.data : null;
+  }
+  function gotScanned(text) { $("friend-code").value = text; compareCode(text); }
+  function scanFile(file) {
+    if (!window.jsQR) { cmpMsg("Scanning is not available right now. Paste the code instead.", false); return; }
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var sc = Math.min(1, 1400 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      var t = null; try { t = decodeCanvas(c); } catch (e) {}
+      if (t) gotScanned(t); else cmpMsg("No QR code found in this photo. Try a sharper photo or screenshot, or paste the code.", false);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); cmpMsg("This photo could not be opened.", false); };
+    img.src = url;
+  }
+  var camStream = null, camOn = false;
+  function stopCam() {
+    camOn = false;
+    if (camStream) { camStream.getTracks().forEach(function (t) { t.stop(); }); camStream = null; }
+    $("cam-wrap").hidden = true;
+  }
+  function startCam() {
+    if (!window.jsQR) { cmpMsg("Scanning is not available right now. Paste the code instead.", false); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { cmpMsg("The camera is not available here. Choose a QR photo or paste the code instead.", false); return; }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function (stream) {
+      camStream = stream; camOn = true;
+      var v = $("cam"); v.srcObject = stream; $("cam-wrap").hidden = false; cmpMsg("Point the camera at your friend's QR code.", true);
+      var c = document.createElement("canvas");
+      v.play().catch(function () {});
+      (function loop() {
+        if (!camOn) return;
+        if (v.videoWidth) {
+          var sc = Math.min(1, 640 / v.videoWidth); c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+          c.getContext("2d", { willReadFrequently: true }).drawImage(v, 0, 0, c.width, c.height);
+          var t = null; try { t = decodeCanvas(c); } catch (e) {}
+          if (t) { stopCam(); gotScanned(t); return; }
+        }
+        setTimeout(loop, 150);
+      })();
+    }, function () { cmpMsg("The camera is not available here. Choose a QR photo or paste the code instead.", false); });
+  }
+
+  /* ---------- confirm step ---------- */
+  function ask(kind, text) { ui.pending = kind; $("confirm-text").textContent = text; $("confirm").hidden = false; }
+
+  function bind() {
+    document.querySelectorAll("[data-s]").forEach(function (b) { b.addEventListener("click", function () { goto(b.getAttribute("data-s")); }); });
+    document.querySelectorAll("#tabs [data-t]").forEach(function (b) { b.addEventListener("click", function () { ui.tab = b.getAttribute("data-t"); renderAll(); }); });
+    $("search").addEventListener("input", function () { ui.search = this.value; renderMain(); });
+    $("lock-btn").addEventListener("click", function () { ui.locked = !ui.locked; renderTop(); toast(ui.locked ? "Locked" : "Unlocked"); });
+    $("share-btn").addEventListener("click", function () { if (!cur()) { toast("Add a checklist first"); return; } goto("trade"); var sw = $("swap"), sb = $("share-box"); if (sw.hidden || sb.hidden) openSwap("share"); });
+    $("title-btn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      var items = app.lists.map(function (d) { return { label: d.title, active: d.id === app.active, fn: function () { app.active = d.id; changed(); window.scrollTo(0, 0); } }; });
+      if (items.length) items.push("-");
+      items.push({ label: "Add a checklist", fn: function () { goto("add"); } });
+      openMenu("lists", items);
+    });
+    $("more-btn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (!cur()) { toast("Add a checklist first"); return; }
+      openMenu("more", [
+        { label: "Copy missing list", fn: function () { copy("missing"); } },
+        { label: "Copy spares list", fn: function () { copy("spares"); } },
+        "-",
+        { label: "Clear progress", cls: "dng", fn: function () { ask("reset", "Clear every tick and spare in this checklist?"); } },
+        { label: "Remove this checklist", cls: "dng", fn: function () { ask("remove", "Remove this checklist and its progress?"); } }
+      ]);
+    });
+    document.addEventListener("click", function (e) { if (ui.menu && !$("menu").contains(e.target)) closeMenu(); });
+    $("file").addEventListener("change", function () {
+      var f = this.files && this.files[0], input = this;
+      if (!f) return;
+      if (f.size > 1500000) { showMsg("This file is too large to be a checklist.", false); input.value = ""; return; }
+      var r = new FileReader();
+      r.onload = function () { addFromText(String(r.result)); input.value = ""; };
+      r.onerror = function () { showMsg("The file could not be opened. Try choosing it again.", false); input.value = ""; };
+      r.readAsText(f);
+    });
+    $("paste-add").addEventListener("click", function () { var t = $("paste").value.trim(); if (!t) { showMsg("Paste the file contents first.", false); return; } addFromText(t); });
+    document.querySelectorAll("[data-th]").forEach(function (b) { b.addEventListener("click", function () { applyTheme(b.getAttribute("data-th")); renderTheme(); }); });
+    $("swap-show").addEventListener("click", function () { openSwap("share"); });
+    $("swap-compare").addEventListener("click", function () { openSwap("cmp"); });
+    $("code-copy").addEventListener("click", function () {
+      var out = $("code-out"), done = function () { $("code-msg").textContent = "Code copied. Send it to your friend."; };
+      var fail = function () { out.focus(); out.select(); $("code-msg").textContent = "Select the code above and copy it."; };
+      try { navigator.clipboard.writeText(out.value).then(done, fail); } catch (e) { fail(); }
+    });
+    $("cmp-go").addEventListener("click", function () { var t = $("friend-code").value.trim(); if (!t) { cmpMsg("Paste your friend's code first.", false); return; } compareCode(t); });
+    $("qr-file").addEventListener("change", function () { var f = this.files && this.files[0]; if (f) scanFile(f); this.value = ""; });
+    $("cam-start").addEventListener("click", startCam);
+    $("cam-stop").addEventListener("click", stopCam);
+    $("copy-missing").addEventListener("click", function () { copy("missing"); });
+    $("copy-spares").addEventListener("click", function () { copy("spares"); });
+    $("reset").addEventListener("click", function () { if (!cur()) return; ask("reset", "Clear every tick and spare in this checklist?"); });
+    $("remove").addEventListener("click", function () { if (!cur()) return; ask("remove", "Remove this checklist and its progress?"); });
+    $("confirm-no").addEventListener("click", function () { ui.pending = null; $("confirm").hidden = true; });
+    $("confirm-yes").addEventListener("click", function () {
+      var d = cur(); if (!d) { $("confirm").hidden = true; return; }
+      if (ui.pending === "reset") app.states[d.id] = { own: {}, spare: {} };
+      if (ui.pending === "remove") {
+        app.lists = app.lists.filter(function (x) { return x.id !== d.id; });
+        delete app.states[d.id];
+        app.active = app.lists[0] ? app.lists[0].id : null;
+        ui.screen = "lists";
+      }
+      ui.pending = null; $("confirm").hidden = true; changed();
+    });
+  }
+
+  /* ---------- saved account data ---------- */
+  function connect() {
+    if (!window.claude || !window.claude.use) { setStatus("Saved on this device"); return; }
+    Promise.all([window.claude.use("user"), window.claude.use("db")]).then(function (r) {
+      var user = r[0], db = r[1];
+      if (!user || !db) { setStatus("Saved on this device"); return; }
+      return user.id().then(function (uid) {
+        if (!uid) { setStatus("Saved on this device"); return; }
+        docRef = db.doc("data/users/" + uid + "/hub");
+        oldRef = db.doc("data/users/" + uid + "/checklist");
+        var waiting = setTimeout(function () { setStatus("Can't reach saved data yet"); }, 10000);
+        docRef.onSnapshot(function (snap) {
+          if (!snap.metadata.fromCache) clearTimeout(waiting);
+          if (dirty || snap.metadata.hasPendingWrites) return;
+          if (snap.exists) { app = normalize(snap.data()); lsSet(); renderAll(); setStatus("Saved"); return; }
+          if (snap.metadata.fromCache) return;
+          renderAll(); dirty = true; flush();
+        }, function () { clearTimeout(waiting); setStatus("Saved on this device only"); docRef = null; });
+      });
+    }).catch(function () { setStatus("Saved on this device only"); docRef = null; });
+  }
+
+  try { var th = localStorage.getItem("checklist-theme"); if (th === "light" || th === "dark") document.documentElement.setAttribute("data-theme", th); } catch (e) {}
+  var local = lsGet();
+  if (local) app = normalize(local);
+  bind();
+  renderAll();
+  connect();
+})();
+</script>
+
+</body>
+</html>
