@@ -9,16 +9,19 @@
   color-scheme: light dark;
   --bg: #ffffff; --surface: #f4f6fa; --fg: #0f172a; --muted: #64748b; --line: #e2e8f0;
   --accent: #1f5fbf; --on: #ffffff; --danger: #b42318; --own: #667085;
+  --e2: #1565c0; --e3: #2e7d32; --e4: #c62828;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0b1220; --surface: #131c2e; --fg: #e6edf6; --muted: #93a3b8; --line: #25324a;
     --accent: #6aa3f5; --on: #0b1520; --danger: #f1998c; --own: #475569; color-scheme: dark;
+    --e2: #6aa3f5; --e3: #5fcf80; --e4: #f1998c;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0b1220; --surface: #131c2e; --fg: #e6edf6; --muted: #93a3b8; --line: #25324a;
   --accent: #6aa3f5; --on: #0b1520; --danger: #f1998c; --own: #475569; color-scheme: dark;
+  --e2: #6aa3f5; --e3: #5fcf80; --e4: #f1998c;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -66,6 +69,13 @@ svg { display: block; }
 .dot.sm { font-size: 13px; }
 .cell.own .dot { background: var(--own); border-color: var(--own); color: #fff; text-decoration: line-through; text-decoration-thickness: 2px; }
 .cell.rainbow.own .dot { border: 3px solid transparent; background: linear-gradient(var(--own), var(--own)) padding-box, linear-gradient(135deg, #e5484d, #f5a524, #30a46c, #3e63dd, #8e4ec6) border-box; }
+.cell.ed2 .dot, .cell.ed3 .dot, .cell.ed4 .dot { border-width: 2.5px; }
+.cell.ed2 .dot { border-color: var(--e2); color: var(--e2); } .cell.ed2 .cap { color: var(--e2); font-weight: 600; }
+.cell.ed3 .dot { border-color: var(--e3); color: var(--e3); } .cell.ed3 .cap { color: var(--e3); font-weight: 600; }
+.cell.ed4 .dot { border-color: var(--e4); color: var(--e4); } .cell.ed4 .cap { color: var(--e4); font-weight: 600; }
+.cell.own.ed2 .dot { background: #1565c0; border-color: #1565c0; color: #fff; }
+.cell.own.ed3 .dot { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+.cell.own.ed4 .dot { background: #c62828; border-color: #c62828; color: #fff; }
 .cell:active .dot { transform: scale(.94); }
 .spare { position: absolute; top: -5px; right: -5px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent); color: var(--on); font-size: 12px; line-height: 22px; font-weight: 700; text-decoration: none; }
 .cap { max-width: 100%; font-size: 11px; line-height: 1.2; color: var(--muted); text-align: center; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.4em; }
@@ -364,6 +374,10 @@ textarea { width: 100%; min-height: 110px; border-radius: 12px; border: 1px soli
     if (m) return { code: m[1], name: m[2] };
     return { code: lab, name: "" };
   }
+  function edOf(lab) {
+    var m = / Bis\d? (\d)(?:nd|rd|th)\b/.exec(lab) || /\u00b7 (\d)(?:nd|rd|th) ed\b/.exec(lab);
+    return m && m[1] >= 2 && m[1] <= 4 ? m[1] : "";
+  }
   function summary(d) {
     var o = 0, t = 0, sp = 0;
     d.groups.forEach(function (g) { var c = counts(d, g); if (!g.bonus) { o += c.owned; t += gcount(g); } sp += c.spares; });
@@ -425,7 +439,8 @@ textarea { width: 100%; min-height: 110px; border-radius: 12px; border: 1px soli
         var grid = el("div", "grid" + (named ? " named" : ""));
         idx.forEach(function (i, j) {
           var id = g.key + "-" + i, own = !!s.own[id], k = s.spare[id] || 0, sp = labs[j];
-          var b = el("button", "cell" + (own ? " own" : "") + (g.rainbow ? " rainbow" : "")); b.type = "button";
+          var ed = edOf(glabel(g, i));
+          var b = el("button", "cell" + (own ? " own" : "") + (g.rainbow ? " rainbow" : "") + (ed ? " ed" + ed : "")); b.type = "button";
           var dot = el("span", "dot" + (sp.code.length > 3 ? " sm" : ""), sp.code); b.appendChild(dot);
           if (k) dot.appendChild(el("span", "spare", "+" + k));
           if (named) b.appendChild(el("span", "cap", sp.name));
